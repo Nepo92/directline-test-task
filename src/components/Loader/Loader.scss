@@ -1,0 +1,20 @@
+.loader {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: rgba(black, 0.5);
+  background-image: url('../../assets/img/preloader.svg');
+  background-repeat: no-repeat;
+  background-size: 50% 50%;
+  background-position: center center;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s linear;
+
+  &.show {
+    opacity: 1;
+    pointer-events: all;
+  }
+}
