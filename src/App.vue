@@ -74,7 +74,7 @@ export default {
       return [categoriesData, projectsData];
     }
 
-    const updateLinks = async (categoriesResponse, projectsResponse) => {
+    const updateLinks = async (categoriesResponse, projectsResponse = null) => {
       const response = categoriesResponse.data.message.data.map((item) => {
         return {
           label: item.title,
@@ -84,12 +84,14 @@ export default {
 
       categories.value = [categories.value, ...response];
 
-      projects.value = [...projectsResponse.data.message.data.map((item) => {
-        return {
-          label: item.title,
-          value: item.id,
-        }
-      })];
+      if (projectsResponse) {
+        projects.value = [...projectsResponse.data.message.data.map((item) => {
+          return {
+            label: item.title,
+            value: item.id,
+          }
+        })];
+      }
 
       hasData.value = await true;
     }
@@ -136,20 +138,18 @@ export default {
     }
 
     const lazyLoad = async () => {
-      const [categoriesData, projectsData] = getPayloadData();
+      const [categoriesData] = getPayloadData();
 
       const loaderTimeout = setTimeout(() => {
         loader.classList.add('show');
       }, 400);
 
-      const getData = await widgetAPI.getData(categoriesData, projectsData);
+      const categoriesResponse = await widgetAPI.getCategories(categoriesData);
 
       clearTimeout(loaderTimeout);
       loader.classList.remove('show');
 
-      const [categoriesResponse, projectsResponse] = getData;
-
-      updateLinks(categoriesResponse, projectsResponse).then(() => {
+      updateLinks(categoriesResponse).then(() => {
         specOption.value = getSpecOption();
 
         changeOffset();
