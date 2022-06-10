@@ -48,6 +48,9 @@
   padding-right: calc(1.25rem + var(--ms-px, 0.875rem) * 3);
   box-sizing: border-box;
   max-width: 100%;
+  width: calc(100% - 65px);
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .multiselect-placeholder {

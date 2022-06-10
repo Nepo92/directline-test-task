@@ -1,18 +1,27 @@
 <template>
   <div class="app">
-    <h1 class="app__title">Приложение для получения категорий и продуктов</h1>
+    <h1 class="app__title">Виджет для получения категорий и продуктов</h1>
     <div class="app__wrapper">
-      <div class="app__item">
-        <h2 class="app-item__title">Категории</h2>
-        <multiselect v-model="categoriesValue" :multipleLabel="() => [categoriesValue]"  mode="multiple" placeholder="Выберите категорию" :hideSelected="false" :searchable="true" :close-on-select="false" :options="categories"></multiselect>
-      </div>
-      <div class="app__item">
-        <h2 class="app-item__title">Продукты</h2>
-        <multiselect v-model="projectsValue" :multipleLabel="() => [projectsValue]" mode="multiple" :searchable="true" :hideSelected="false" :close-on-select="false" placeholder="Выберите продукт" :options="projects"></multiselect>
-      </div>
+      <ul class="app__selects">
+        <li class="app-selects__item select-item" ref="categoriesSelect">
+          <h2 class="select-item__title">Категории</h2>
+          <div class="select-item__wrapper">
+              <multiselect ref="categoriesSelectSettings" v-model="categoriesValue" :multipleLabel="() => showSelectValues(categoriesValue, 'categories')"  mode="multiple" placeholder="Выберите категорию" :hideSelected="false" :searchable="true"  :close-on-select="false" :options="categories"></multiselect>
+            <button class="select-item__btn" v-show="hasData" @click="selectAllCategories">Выбрать все</button>
+          </div>
+        </li>
+        <li class="app-selects__item select-item">
+          <h2 class="select-item__title">Продукты</h2>
+          <div class="select-item__wrapper">
+              <multiselect ref="productsSelectSettings" v-model="projectsValue" :multipleLabel="() => showSelectValues(projectsValue, 'projects')" mode="multiple" :searchable="true" :hideSelected="false" :close-on-select="false" placeholder="Выберите продукт" :options="projects"></multiselect>
+            <button class="select-item__btn" v-show="hasData" @click="() => selectAllProducts()">Выбрать все</button>
+          </div>
+        </li>
+      </ul>
 
-      <button v-show="!hasData" class="app__btn" @click="getCategoriesAndProjects" type="button">Получить данные</button>
-      <button v-show="hasData" class="app__btn" @click="getCategoriesAndProjects" type="button">Отправить</button>
+      <button v-show="!hasData" class="app__btn" @click="getCategoriesAndProjects" type="button">
+        Получить данные
+      </button>
     </div>
     <Loader @create-loader="createLoader"/>
   </div>
@@ -22,9 +31,9 @@
 import './assets/scss/settings.scss';
 import './assets/scss/select.scss';
 import './assets/scss/grid.scss';
+import './App.scss';
 
-import { ref, watch } from "vue";
-
+import {ref, watch, reactive, onMounted} from "vue";
 import { widgetAPI } from "../api/api";
 
 import Loader from "./components/Loader/Loader.vue";
@@ -36,19 +45,24 @@ export default {
   setup() {
     let categories = ref([]);
     let projects = ref([]);
-    let categoriesLimit = ref(0);
+    let categoriesLimit = ref(15);
     let categoriesOffset = ref(0);
     let projectsLimit = ref(0);
     let projectsOffset = ref(0);
     let hasData = ref(false);
+    let categoriesSelect = ref({});
+    let specOption = ref({});
+    let bodySelect = ref({});
+    let categoriesSelectSettings = ref({});
+    let productsSelectSettings = ref({});
 
     let categoriesValue = ref([]);
     let projectsValue = ref([]);
+
     let loader;
+    let categoriesOptionsCount = 15;
 
-    const getCategoriesAndProjects = async (e) =>  {
-      const t = e.target
-
+    const getPayloadData = () => {
       const categoriesData = new FormData();
       categoriesData.set('limit', `${categoriesLimit.value}`);
       categoriesData.set('offset', `${categoriesOffset.value}`);
@@ -57,11 +71,52 @@ export default {
       projectsData.set('limit', `${projectsLimit.value}`);
       projectsData.set('offset', `${projectsOffset.value}`);
 
+      return [categoriesData, projectsData];
+    }
+
+    const updateLinks = async (categoriesResponse, projectsResponse) => {
+      const response = categoriesResponse.data.message.data.map((item) => {
+        return {
+          label: item.title,
+          value: item.id
+        }
+      });
+
+      categories.value = [categories.value, ...response];
+
+      projects.value = [...projectsResponse.data.message.data.map((item) => {
+        return {
+          label: item.title,
+          value: item.id,
+        }
+      })];
+
+      hasData.value = await true;
+    }
+
+    const changeOffset = () => {
+      categoriesOffset.value = categoriesLimit.value;
+      categoriesLimit.value = categoriesLimit.value + categoriesOptionsCount;
+    }
+
+    const getSpecOption = () => {
+      return Array.from(bodySelect.value.children).at(-8);
+    }
+
+    const getCategoriesBodySelect = () => {
+      return Array.from(Array.from(categoriesSelect.value.children).at(-1).children[0].children).at(-2).children[0];
+    }
+
+    const getCategoriesAndProjects = async (e) =>  {
+      const t = e.target
+
       const loaderTimeout = setTimeout(() => {
         loader.classList.add('show');
       }, 400);
 
       t.classList.add('no-active');
+
+      const [categoriesData, projectsData] = getPayloadData();
 
       const getData = await widgetAPI.getData(categoriesData, projectsData);
 
@@ -72,20 +127,73 @@ export default {
 
       const [categoriesResponse, projectsResponse] = getData;
 
-      categories.value = categoriesResponse.data.message.data.map((item) => item.title);
-      projects.value = projectsResponse.data.message.data.map((item) => item.title);
+      updateLinks(categoriesResponse, projectsResponse).then(() => {
+        bodySelect.value = getCategoriesBodySelect();
 
-      hasData.value = true;
+        specOption.value = getSpecOption();
+        changeOffset();
+      });
     }
+
+    const lazyLoad = async () => {
+      const [categoriesData, projectsData] = getPayloadData();
+
+      const loaderTimeout = setTimeout(() => {
+        loader.classList.add('show');
+      }, 400);
+
+      const getData = await widgetAPI.getData(categoriesData, projectsData);
+
+      clearTimeout(loaderTimeout);
+      loader.classList.remove('show');
+
+      const [categoriesResponse, projectsResponse] = getData;
+
+      updateLinks(categoriesResponse, projectsResponse).then(() => {
+        specOption.value = getSpecOption();
+
+        changeOffset();
+      });
+    }
+
+    watch(specOption, () => {
+      const options = {
+        rootMargin: '0px',
+        threshold: 1.0
+      }
+
+      const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+          lazyLoad();
+        }
+      }, options);
+
+      if (specOption.value) {
+        observer.observe(specOption.value);
+      }
+    })
 
     const createLoader = (loaderItem) => {
       loader = loaderItem;
     };
 
-    watch(hasData, () => {
-      console.log(projects.value);
-      console.log(categories.value);
-    });
+    const showSelectValues = (arr, selectName) => {
+      const arrEntries = Object.entries(arr);
+
+      const data = selectName === 'categories' ? categories.value : projects.value;
+
+      const values = data.filter((el) => arrEntries.find((item) => +item[1] === +el.value));
+
+      return values.map((item) => item.label);
+    };
+
+    const selectAllCategories = () => {
+      categoriesSelectSettings.value.selectAll();
+    };
+
+    const selectAllProducts = () => {
+      productsSelectSettings.value.selectAll();
+    }
 
     return {
       categories,
@@ -95,6 +203,12 @@ export default {
       getCategoriesAndProjects,
       createLoader,
       hasData,
+      showSelectValues,
+      categoriesSelect,
+      categoriesSelectSettings,
+      selectAllCategories,
+      productsSelectSettings,
+      selectAllProducts,
     }
   }
 }
