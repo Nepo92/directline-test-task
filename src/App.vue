@@ -55,6 +55,7 @@ export default {
     let bodySelect = ref({});
     let categoriesSelectSettings = ref({});
     let productsSelectSettings = ref({});
+    let optionsArray = ref([]);
 
     let categoriesValue = ref([]);
     let projectsValue = ref([]);
@@ -150,6 +151,7 @@ export default {
       loader.classList.remove('show');
 
       updateLinks(categoriesResponse).then(() => {
+
         specOption.value = getSpecOption();
 
         changeOffset();
@@ -162,9 +164,14 @@ export default {
         threshold: 1.0
       }
 
-      const observer = new IntersectionObserver((entries) => {
+      const observer = new IntersectionObserver((entries, data, target) => {
         if (entries[0].isIntersecting) {
-          lazyLoad();
+          const hasOptions = optionsArray.value.includes(specOption.value);
+
+          if (!hasOptions) {
+            lazyLoad();
+            observer.disconnect(specOption.value);
+          }
         }
       }, options);
 
