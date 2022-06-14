@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>direct-line test-task</title>
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+<script src="https://unpkg.com/vue@3"></script>
+<script src="js/multiselect/multiselect.min.js"></script>
+<script src="js/axios/axios.min.js"></script>
+<script src="js/api/api.js"></script>
+
+<div id="widget"></div>
+
+<script type="module">
+  const { createApp, ref, reactive, defineComponent, onMounted } = Vue;
+
+  const categories = {
+    title: 'Категории',
+    name: 'categories[]',
+    value: [],
+    options: [],
+  };
+
+  const projects = {
+    title: 'Продукты',
+    name: 'projects[]',
+    value: [],
+    options: [],
+  };
+
+  const Loader = defineComponent({
+    name: 'loader',
+    emits: ['create-loader'],
+    setup(props, { emit }) {
+      const loader = ref(null);
+
+      const showLoader = (loader) => {
+        loader.classList.add('show');
+      }
+
+      const hideLoader = (loader) => {
+        loader.classList.remove('show');
+      }
+
+      onMounted(() => {
+        emit('create-loader', {
+          showLoader,
+          hideLoader,
+          loader: loader.value,
+        });
+      });
+
+      return {
+        loader,
+      }
+    },
+    template: '<div ref="loader" class="loader"></div>',
+  })
+
+  const Widget = defineComponent({
+    components: {
+      Loader,
+      VueformMultiselect,
+    },
+    name: 'widget',
+    setup() {
+      const items = reactive([categories, projects]);
+      let hasData = ref(false);
+      let loader = reactive({});
+
+      let categoriesLimit = 15;
+      let categoriesOffset = 0;
+      let projectsLimit = 15;
+      let projectsOffset = 0;
+
+      const categoriesData = new FormData();
+      categoriesData.set('limit', categoriesLimit);
+      categoriesData.set('offset', categoriesOffset);
+
+      const projectsData = new FormData();
+      projectsData.set('limit', projectsLimit);
+      projectsData.set('offset', projectsOffset);
+
+      const showSelectValues = (item) => {
+        const selected = Object.entries(item.value);
+        const options = item.options;
+
+        if (selected.length) {
+          const placeholder = options.filter((el) => selected.find((item) => item[1] === el.value));
+
+          return placeholder.map((item) => item.label);
+        }
+      };
+
+      const getData = async (e) => {
+        const t = e.target
+
+        t.classList.add('no-active');
+        const showLoader = setTimeout(() => {
+          loader.showLoader(loader.target);
+        }, 400);
+
+        const options = await widgetAPI.getData(categoriesData, projectsData);
+
+        clearTimeout(showLoader);
+        loader.hideLoader(loader.target);
+        t.classList.remove('no-active');
+
+        const [categoriesOptions, projectsOptions] = options;
+
+        items[0].options = categoriesOptions.data.message.data.map((el) => {
+          return {
+            value: el.id,
+            label: el.title,
+          }
+        });
+
+        items[1].options = projectsOptions.data.message.data.map((el) => {
+          return {
+            value: el.id,
+            label: el.title,
+          }
+        });
+
+        hasData.value = true;
+      };
+
+      const createLoader = (loaderProps) => {
+        loader.showLoader = loaderProps.showLoader;
+        loader.hideLoader = loaderProps.hideLoader;
+        loader.target = loaderProps.loader;
+      };
+
+      const sendData = (e) => {
+        const t = e.target
+
+        t.classList.add('no-active');
+        const showLoader = setTimeout(() => {
+          loader.showLoader(loader.target);
+        }, 400);
+
+
+        clearTimeout(showLoader);
+        loader.hideLoader(loader.target);
+        t.classList.remove('no-active');
+      };
+
+      return {
+        items,
+        showSelectValues,
+        getData,
+        hasData,
+        createLoader,
+        sendData,
+      };
+    },
+    template: `
+      <h1 class="">Виджет для выбора категорий и продуктов</h1>
+      <div class="widget">
+        <ul class="widget__items">
+          <li class="widget-item" v-for="(item, index) of items">
+            <h2 class="widget-item__title">{{item.title}}</h2>
+            <VueformMultiselect v-model="item.value" mode="multiple" placeholder="Выберите категорию" :hideSelected="false" :searchable="true"  :close-on-select="false" :options="item.options" :multipleLabel="() => showSelectValues(item)"
+            ></VueformMultiselect>
+          </li>
+        </ul>
+        <button v-show="!hasData" @click="(e) => getData(e)" class="widget__button" type="button">Получить данные</button>
+        <button @click="(e) => sendData(e)" v-show="hasData" @click="(e) => getData(e)" class="widget__button" type="button">Отправить</button>
+        <Loader @create-loader="createLoader"/>
+      </div>
+    `,
+  });
+
+  const App = createApp(Widget);
+  App.mount('#widget');
+</script>
+</body>
+</html>

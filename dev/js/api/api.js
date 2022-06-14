@@ -1,6 +1,4 @@
-import axios from "axios";
-
-export const widgetAPI = {
+const widgetAPI = {
   config: {
     headers: { Authorization: 'Bearer BT3HK2NpCnyrKiDo', },
   },
