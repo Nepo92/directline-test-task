@@ -18,7 +18,7 @@ export const Widget = defineComponent({
       {
         name: 'Категории',
         nameInput: 'categories[]',
-        value: categoriesDefaultSelected,
+        value: categoriesDefaultSelected.length ? categoriesDefaultSelected : [],
         isSelected: !!categoriesDefaultSelected.length,
         options: [],
         placeholder: 'Выберите категорию',
@@ -26,7 +26,7 @@ export const Widget = defineComponent({
       {
         name: 'Продукты',
         nameInput: 'projects[]',
-        value: productsDefaultSelected,
+        value: productsDefaultSelected.length ? productsDefaultSelected : [],
         isSelected: !!productsDefaultSelected.length,
         options: [],
         placeholder: 'Выберите продукт',
@@ -81,7 +81,7 @@ export const Widget = defineComponent({
     }
 
     const createLoader = (props) => {
-      console.log(props)
+      loaderSettings.target = props.loader;
       loaderSettings.target = props.loader;
       loaderSettings.showLoader = props.showLoader;
       loaderSettings.hideLoader = props.hideLoader;
