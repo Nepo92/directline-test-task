@@ -21,6 +21,6 @@ export const widgetAPI = {
     return Promise.all([categories, projects]);
   },
   sendData(data) {
-    axios.get('/?' + data.join('&'));
+    axios.get('/directline-test-task/dist/?' + data.join('&'));
   }
 }
