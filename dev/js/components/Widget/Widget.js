@@ -1,6 +1,7 @@
 import Multiselect from "../Multiselect/Multiselect";
 import GetData from "./GetData/GetData";
 import {widgetAPI} from "../../api/api";
+import Loader from '../Loader/Loader.js';
 import './Widget.scss';
 
 const { defineComponent, reactive, ref, watch } = Vue;
@@ -9,6 +10,7 @@ const getData = new GetData();
 export const Widget = defineComponent({
   components: {
     Multiselect,
+    Loader,
   },
   name: 'widget',
   async setup() {
@@ -33,6 +35,7 @@ export const Widget = defineComponent({
 
     let select = ref(null);
     let selectAllBtn = ref(null);
+    let loaderSettings = reactive({});
 
     await getData.init(items);
 
@@ -77,7 +80,14 @@ export const Widget = defineComponent({
       items[index].isSelected = true;
     }
 
-    const sendData = (e) => {
+    const createLoader = (props) => {
+      console.log(props)
+      loaderSettings.target = props.loader;
+      loaderSettings.showLoader = props.showLoader;
+      loaderSettings.hideLoader = props.hideLoader;
+    }
+
+    const sendData = async (e) => {
       const t = e.target;
 
       let data = [];
@@ -90,7 +100,23 @@ export const Widget = defineComponent({
         data.push(`${items[1].nameInput}=${item}`);
       });
 
-      widgetAPI.sendData(data);
+      const send = new Promise((resolve) => {
+          setTimeout(() => {
+            widgetAPI.sendData(data);
+            resolve();
+          }, 1000);
+      });
+
+      const showLoader = setTimeout(() => {
+        loaderSettings.showLoader(loaderSettings.target);
+      }, 400);
+      t.classList.add('no-active');
+
+      send.then(() => {
+        clearTimeout(showLoader);
+        loaderSettings.hideLoader(loaderSettings.target);
+        t.classList.remove('no-active');
+      });
     };
 
     return {
@@ -102,6 +128,7 @@ export const Widget = defineComponent({
       sendData,
       selectOption,
       selectAllBtn,
+      createLoader,
     };
   },
   template: `
@@ -117,5 +144,6 @@ export const Widget = defineComponent({
      </li>
   </ul>
   <button @click="(e) => sendData(e)" class="widget__button" type="button">Отправить</button>
+  <Loader @create-loader="createLoader"/>
 </div>`,
 });
