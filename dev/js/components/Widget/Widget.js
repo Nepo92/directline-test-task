@@ -137,8 +137,8 @@ export const Widget = defineComponent({
     <li class="widget-item" v-for="(item, index) of items">
       <h2 class="widget-item__title">{{item.name + ':'}}</h2>
       <div class="widget-item__wrapper select">
-        <Multiselect mode="multiple" ref="select" v-model="item.value" :searchable="true" :infinite="true" :options="item.options" :placeholder="item.placeholder" 
-          :min-chars="0" :closeOnSelect="false" :limit="10" :hideSelected="false" :multipleLabel="(e) => showLabels(e, item)" @clear="(e) => clearSelect(e, item, index)" :resolve-on-load="false" :clear-on-search="true" @select="(e) => selectOption(e, item, index)"></Multiselect>
+        <Multiselect mode="multiple" ref="select" v-model="item.value" :searchable="true" :options="item.options" :placeholder="item.placeholder" 
+          :min-chars="0" :closeOnSelect="false" :hideSelected="false" :multipleLabel="(e) => showLabels(e, item)" @clear="(e) => clearSelect(e, item, index)" :resolve-on-load="false" :clear-on-search="true" @select="(e) => selectOption(e, item, index)"></Multiselect>
         <button v-show="!item.isSelected" type="button" ref="selectAllBtn" class="select__btn" @click="(e) => selectAllItems(e, item, index)">Все</button>
       </div>
      </li>
